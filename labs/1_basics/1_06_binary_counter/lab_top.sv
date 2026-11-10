@@ -73,17 +73,17 @@ module lab_top
     // How do you change the speed of LED blinking?
     // Try different bit slices to display.
 
-    localparam w_cnt = $clog2 (clk_mhz * 1000 * 1000);
+    localparam w_cnt = $clog2 (clk_mhz * 1000 * 1000); // 50 млн тактов в секунду, для этого надо 26 бита
 
-    logic [w_cnt - 1:0] cnt;
+    logic [w_cnt - 1:0] cnt; // объявление регистра
 
-    always_ff @ (posedge clk or posedge rst)
+    always_ff @ (posedge clk or posedge rst) // ф-я для логики на триггерах, поседж тк передний фронт
         if (rst)
             cnt <= '0;
         else
             cnt <= cnt + 1'd1;
 
-    assign led = cnt [$left (cnt) -: w_led];
+    assign led = cnt [$left (cnt) -: w_led]; // срез битов
 
     // Exercise 2: Key-controlled counter.
     // Comment out the code above.
@@ -93,15 +93,82 @@ module lab_top
     // Change the design, for example:
     //
     // 1. One key is used to increment, another to decrement.
-    //
+wire any_key0 = key[0];
+wire any_key1 = key[1];
+
+logic any_key_r0;
+logic any_key_r1;
+
+always_ff @(posedge clk or posedge rst) begin
+    if (rst) begin
+        any_key_r0 <= '0;
+        any_key_r1 <= '0;
+    end else begin
+        any_key_r0 <= any_key0;
+        any_key_r1 <= any_key1;
+    end
+end
+
+wire any_key_pressed0 = ~any_key0 & any_key_r0;
+wire any_key_pressed1 = ~any_key1 & any_key_r1;
+
+    logic [w_led - 1:0] cnt;
+
+always_ff @(posedge clk or posedge rst)
+    if (rst)
+        cnt <= '0;
+    else if (any_key_pressed0)
+        cnt <= cnt + 1'd1;
+    else if (any_key_pressed1)
+        cnt <= cnt - 1'd1;
+
+    assign led = w_led' (cnt);
+
     // 2. Two counters controlled by different keys
     // displayed in different groups of LEDs.
+wire any_key0 = key[0];
+wire any_key1 = key[1];
 
-    /*
+logic any_key_r0;
+logic any_key_r1;
 
-    wire any_key = | key;
+always_ff @(posedge clk or posedge rst) begin
+    if (rst) begin
+        any_key_r0 <= '0;
+        any_key_r1 <= '0;
+    end else begin
+        any_key_r0 <= any_key0;
+        any_key_r1 <= any_key1;
+    end
+end
 
-    logic any_key_r;
+wire any_key_pressed0 = ~any_key0 & any_key_r0;
+wire any_key_pressed1 = ~any_key1 & any_key_r1;
+
+    logic [3:0] cnt0;
+    logic [3:0] cnt1;
+
+// Первый счётчик
+always_ff @(posedge clk or posedge rst)
+    if (rst)
+        cnt0 <= '0;
+    else if (any_key_pressed0)
+        cnt0 <= cnt0 + 1'd1;
+
+// Второй счётчик
+always_ff @(posedge clk or posedge rst)
+    if (rst)
+        cnt1 <= '0;
+    else if (any_key_pressed1)
+        cnt1 <= cnt1 + 1'd1;
+
+assign led[3:0] = cnt0;
+assign led[7:4] = cnt1;    
+
+////////////////////////////// ТЕОРИЯ///////////////////////////////////////////////////////////////
+    wire any_key = | key; //если хотя бы одна кнопка активна any_key = 1, унитарное или, активное состояние кнопки 1.
+// any_key - текущее состояние кнопок, any_key_r- зарегистрированное, то есть сохранённое на такте, состояние кнопок
+    logic any_key_r; // объявляется переменная, запоминает состояние предыдущего такта
 
     always_ff @ (posedge clk or posedge rst)
         if (rst)
@@ -109,9 +176,9 @@ module lab_top
         else
             any_key_r <= any_key;
 
-    wire any_key_pressed = ~ any_key & any_key_r;
+    wire any_key_pressed = ~ any_key & any_key_r; // определяется отпускание кнопки
 
-    logic [w_led - 1:0] cnt;
+    logic [w_led - 1:0] cnt; // диапазон битов счётчика, четырехбитный счетчик значить из 8 вычитаем 1 получаем 7, 7:0
 
     always_ff @ (posedge clk or posedge rst)
         if (rst)
@@ -119,8 +186,8 @@ module lab_top
         else if (any_key_pressed)
             cnt <= cnt + 1'd1;
 
-    assign led = w_led' (cnt);
+    assign led = w_led' (cnt); // суть в том, что мы нажимаем кнопку any_key, any_key_r запоминает выбор, потом отпускаем
+// any_key_pressed запоминает когда кнопку отпустилась пишет 1, счетчик cnt включает светодиод
 
-    */
 
 endmodule
